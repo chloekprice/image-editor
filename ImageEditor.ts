@@ -31,7 +31,7 @@ class Image {
     public set height(newHeight: number) { this._height = newHeight; }
 
     public setColor(x: number, y: number, newColor: Color) {
-        if ((x < this._height) || (y < this._width)) {
+        if ((x < this._height) || (y < this._width) || (x < 0) || (y < 0)) {
             throw new Error
         }
 
@@ -39,7 +39,7 @@ class Image {
     }
 
     public getColor(x: number, y: number): Color {
-        if ((x < this._height) || (y < this._width)) {
+        if ((x < this._height) || (y < this._width) || (x < 0) || (y < 0)) {
             throw new Error
         }
         return this._pixels[x][y];
