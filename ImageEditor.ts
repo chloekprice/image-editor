@@ -95,16 +95,13 @@ class ImageEditor {
                 }
                 this._emboss(image);
             } else if (FILTER === "motionblur") {
-                if (this.commandLineArgs.length != 4) {
+                if (this.commandLineArgs.length < 4) {
                     this._usage();
                     return;
                 }
                 
-                let length: number = -1;
-
-                if (typeof this.commandLineArgs === "string") {
-                    length = parseInt(this.commandLineArgs[3])
-                }   
+                if (this.commandLineArgs === undefined) { throw new Error('cannot parse motion blur length'); }
+                let length = parseInt(this.commandLineArgs[3] as string, 10);
 
                 this._motionblur(image, length);
             } else {
@@ -185,28 +182,26 @@ class ImageEditor {
 	}
 
     private _motionblur(image: Image, length: number) {
-		if (length < 1) {
-			return;
-		}
+		if (length < 1) { return; }
 
-		for (let x = 0; x < image.height; x++) {
-			for (let y = 0; y < image.width; y++) {
-			    let currentColor: Color = image.getColor(y, x);
+		for (let w = 0; w < image.width; w++) {
+			for (let h = 0; h < image.height; h++) {
+			    let currentColor: Color = image.getColor(w, h);
 				
-				let maxX = Math.min(image.height - 1, x + length - 1);
-				for (let i = x + 1; i <= maxX; ++i) {
-					let tempColor: Color = image.getColor(y, x);
+				let maxW = Math.min(image.width - 1, w + length - 1);
+				for (let i = w + 1; i <= maxW; ++i) {
+					let tempColor: Color = image.getColor(i, h);
 					currentColor.red += tempColor.red;
 					currentColor.green += tempColor.green;
 					currentColor.blue += tempColor.blue;
 				}
 
-				let delta: number = (maxX - x + 1);
+				let delta: number = (maxW - w + 1);
 				currentColor.red /= delta;
 				currentColor.green /= delta;
 				currentColor.blue /= delta;
                 
-                image.setColor(y, x, currentColor);
+                image.setColor(w, h, currentColor);
 			}
 		}
 	}
