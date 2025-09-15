@@ -34,21 +34,21 @@ class Image {
     public set width(newWidth:  number) { this._width = newWidth; }
     public set height(newHeight: number) { this._height = newHeight; }
 
-    public setColor(x: number, y: number, newColor: Color) {
-        if ((x >= this._height) || (y >= this._width) || (x < 0) || (y < 0)) {
+    public setColor(width: number, height: number, newColor: Color) {
+        if ((height >= this._height) || (width >= this._width) || (height < 0) || (width < 0)) {
             throw new Error
         }
 
-        this._pixels[x]![y] = newColor;
+        this._pixels[height]![width] = newColor;
     }
 
-    public getColor(x: number, y: number): Color {
-        if ((x >= this._height) || (y >= this._width) || (x < 0) || (y < 0)) {
+    public getColor(width: number, height: number): Color {
+        if ((height >= this._height) || (width >= this._width) || (height < 0) || (width < 0)) {
             throw new Error
         }
 
-        if (isColor(this._pixels[x]![y])) {
-            return this._pixels[x]![y] as Color;
+        if (isColor(this._pixels[height]![width])) {
+            return this._pixels[height]![width] as Color;
         } else {
             return {red: 0, green: 0, blue: 0};
         }
@@ -92,7 +92,7 @@ class ImageEditor {
                     this._usage();
                     return;
                 }
-                this._invert(image);
+                // this._invert(image);
             }else if (FILTER === "emboss") {
                 if (this.commandLineArgs.length != 3) {
                     this._usage();
@@ -130,11 +130,11 @@ class ImageEditor {
     private _emboss(image: Image) {
 		for (let x = image.height - 1; x >= 0; --x) {
 			for (let y = image.height - 1; y >= 0; --y) {
-				let currentColor: Color = image.getColor(x, y);
+				let currentColor: Color = image.getColor(y, x);
 				
 				let diff = 0;
 				if (x > 0 && y > 0) {
-					let upLeftColor: Color = image.getColor(x - 1, y - 1);
+					let upLeftColor: Color = image.getColor(y - 1, x - 1);
 					if (Math.abs(currentColor.red - upLeftColor.red) > Math.abs(diff)) {
 						diff = currentColor.red - upLeftColor.red;
 					}
@@ -152,6 +152,8 @@ class ImageEditor {
 				currentColor.red = grayLevel;
 				currentColor.green = grayLevel;
 				currentColor.blue = grayLevel;
+
+                image.setColor(y, x, currentColor);
 			}
 		}
     }
@@ -159,7 +161,7 @@ class ImageEditor {
     private _grayscale(image: Image) {
 		for (let x = 0; x < image.height; ++x) {
 			for (let y = 0; y < image.width; ++y) {
-				let currentColor: Color = image.getColor(x, y);
+				let currentColor: Color = image.getColor(y, x);
 								
 				let grayLevel: number = (currentColor.red + currentColor.green + currentColor.blue) / 3;
 				grayLevel = Math.max(0, Math.min(grayLevel, 255));
@@ -167,6 +169,8 @@ class ImageEditor {
 				currentColor.red = grayLevel;
 				currentColor.green = grayLevel;
 				currentColor.blue = grayLevel;
+                
+                image.setColor(y, x, currentColor);
 			}
 		}
 	}
@@ -174,11 +178,13 @@ class ImageEditor {
     private _invert(image: Image) {
 		for (let x = 0; x < image.height; ++x) {
 			for (let y = 0; y < image.width; ++y) {
-				let currentColor: Color = image.getColor(x, y);
+				let currentColor: Color = image.getColor(y, x);
 	
 				currentColor.red = 255 - currentColor.red;
 				currentColor.green = 255 - currentColor.green;
 				currentColor.blue = 255 - currentColor.blue;
+                
+                image.setColor(y, x, currentColor);
 			}
 		}
 	}
@@ -190,11 +196,11 @@ class ImageEditor {
 
 		for (let x = 0; x < image.height; x++) {
 			for (let y = 0; y < image.width; y++) {
-			    let currentColor: Color = image.getColor(x, y);
+			    let currentColor: Color = image.getColor(y, x);
 				
 				let maxX = Math.min(image.height - 1, x + length - 1);
 				for (let i = x + 1; i <= maxX; ++i) {
-					let tempColor: Color = image.getColor(i, y);
+					let tempColor: Color = image.getColor(y, x);
 					currentColor.red += tempColor.red;
 					currentColor.green += tempColor.green;
 					currentColor.blue += tempColor.blue;
@@ -204,6 +210,8 @@ class ImageEditor {
 				currentColor.red /= delta;
 				currentColor.green /= delta;
 				currentColor.blue /= delta;
+                
+                image.setColor(y, x, currentColor);
 			}
 		}
 	}
@@ -211,76 +219,38 @@ class ImageEditor {
     private _readImage(filePath: string): Image {
         let image: Image;
 
-            let fileContent = fs.readFileSync(filePath);
-            let offset = 0;
+        let fileContent: string = fs.readFileSync(filePath, 'utf8');
+        const tokens: string[] = fileContent
+                        .split(/\s+/)
+                        .filter( token => token.length > 0 && !token.startsWith('#'));
+            
+        // Check general formate
+        if (tokens[0] !== 'P3' 
+            || tokens[1] === undefined
+            || tokens[2] === undefined
+            || tokens[3] === undefined
+        ) { throw new Error('Unsupported PPM format. Only configure for P3'); }
 
-            let magicNumber = "";
-            while (fileContent[offset] !== 0x0A && fileContent[offset] !== 0x20) {
-                magicNumber += String.fromCharCode(fileContent[offset] as number);
-                offset++;
+        // Get image width and height
+        const width = parseInt(tokens[1], 10);
+        const height = parseInt(tokens[2], 10);
+        const _ = parseInt(tokens[3], 10);
+
+        // Get and set image data
+        image = new Image(width, height);
+        let pixelIndex = 4;
+        for (let h = 0; h < height; h++) {
+            for (let w = 0; w < width; w++) {
+                if (tokens[pixelIndex] === undefined) { throw new Error('Could not parse the pixels of the image') }
+                const red = parseInt(tokens[pixelIndex++] as string, 10);
+                if (tokens[pixelIndex] === undefined) { throw new Error('Could not parse the pixels of the image') }
+                const green = parseInt(tokens[pixelIndex++] as string, 10);
+                if (tokens[pixelIndex] === undefined) { throw new Error('Could not parse the pixels of the image') }
+                const blue = parseInt(tokens[pixelIndex++] as string, 10);
+
+                image.setColor(w, h, {red, green, blue});
             }
-
-            offset++;
-
-            if (magicNumber !== "P3") {
-                console.error("Unsupported PPM format. Only P3 is supported.")
-            }
-
-            while (fileContent[offset] === 0x23) { // '#'
-                while (fileContent[offset] !== 0x0A) { // Newline
-                    offset++;
-                }
-                offset++; // Skip newline
-            }
-
-            // Read width
-            let widthStr = '';
-            while (fileContent[offset] !== 0x0A && fileContent[offset] !== 0x20) {
-                widthStr += String.fromCharCode(fileContent[offset] as number);
-                offset++;
-            }
-            offset++;
-            const width = parseInt(widthStr, 10);
-
-            console.log(width);
-
-            // Read height
-            let heightStr = '';
-            while (fileContent[offset] !== 0x0A && fileContent[offset] !== 0x20) {
-                heightStr += String.fromCharCode(fileContent[offset] as number);
-                offset++;
-            }
-            offset++;
-            const height = parseInt(heightStr, 10);
-
-            console.log(height);
-
-            image = new Image(width, height);
-
-            // Read max color value
-            let maxColorValueStr = '';
-            while (fileContent[offset] !== 0x0A && fileContent[offset] !== 0x20) {
-                maxColorValueStr += String.fromCharCode(fileContent[offset] as number);
-                offset++;
-            }
-            offset++;
-            const maxColorValue = parseInt(maxColorValueStr, 10);
-
-            for (let y = 0; y < height; ++y) {
-                for (let x = 0; x < width; ++x) {
-                    let redString: string = String.fromCharCode(fileContent[offset] as number);
-                    let red: number = parseInt(redString);
-                    offset++;
-                    let greenString: string = String.fromCharCode(fileContent[offset] as number);
-                    let green: number = parseInt(greenString);
-                    offset++;
-                    let blueString: string = String.fromCharCode(fileContent[offset] as number);
-                    let blue: number = parseInt(blueString);
-                    offset++;
-
-                    image.setColor(y, x, {red: red, blue: blue, green: green});
-                }
-            }
+        }
 
         return image;
     }
@@ -294,10 +264,10 @@ class ImageEditor {
         ppmContent += `${image.width} ${image.height}\n`;
         ppmContent += `255\n`;
 
-        for (let y = 0; y < image.height; y++) {
+        for (let h = 0; h < image.height; h++) {
             let rowPixels: string[] = [];
-            for (let x = 0; x < image.width; x++) {
-                const pixel = image.getColor(y, x);
+            for (let w = 0; w < image.width; w++) {
+                const pixel = image.getColor(w, h);
                 rowPixels.push(`${pixel.red} ${pixel.green} ${pixel.blue}`);
             }
             ppmContent += rowPixels.join(' ') + '\n';
