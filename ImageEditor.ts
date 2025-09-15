@@ -64,7 +64,6 @@ class ImageEditor {
     }
 
     run() {
-        console.log("starting...")
         try {
             if (this.commandLineArgs.length < 3) {
                 this._usage();
@@ -74,10 +73,6 @@ class ImageEditor {
             const INPUT_FILE = this.commandLineArgs[0];
             const OUTPUT_FILE = this.commandLineArgs[1];
             const FILTER = this.commandLineArgs[2];
-
-            console.log(INPUT_FILE);
-            console.log(OUTPUT_FILE);
-            console.log(FILTER);
 
             let image: Image = this._readImage(INPUT_FILE as string);
 
@@ -92,7 +87,7 @@ class ImageEditor {
                     this._usage();
                     return;
                 }
-                // this._invert(image);
+                this._invert(image);
             }else if (FILTER === "emboss") {
                 if (this.commandLineArgs.length != 3) {
                     this._usage();
@@ -128,13 +123,13 @@ class ImageEditor {
 
 
     private _emboss(image: Image) {
-		for (let x = image.height - 1; x >= 0; --x) {
-			for (let y = image.height - 1; y >= 0; --y) {
-				let currentColor: Color = image.getColor(y, x);
+		for (let w = image.width - 1; w >= 0; --w) {
+			for (let h = image.height - 1; h >= 0; --h) {
+				let currentColor: Color = image.getColor(w, h);
 				
 				let diff = 0;
-				if (x > 0 && y > 0) {
-					let upLeftColor: Color = image.getColor(y - 1, x - 1);
+				if (w > 0 && h > 0) {
+					let upLeftColor: Color = image.getColor(w - 1, h - 1);
 					if (Math.abs(currentColor.red - upLeftColor.red) > Math.abs(diff)) {
 						diff = currentColor.red - upLeftColor.red;
 					}
@@ -153,7 +148,7 @@ class ImageEditor {
 				currentColor.green = grayLevel;
 				currentColor.blue = grayLevel;
 
-                image.setColor(y, x, currentColor);
+                image.setColor(w, h, currentColor);
 			}
 		}
     }
@@ -224,7 +219,7 @@ class ImageEditor {
                         .split(/\s+/)
                         .filter( token => token.length > 0 && !token.startsWith('#'));
             
-        // Check general formate
+        // Check general format
         if (tokens[0] !== 'P3' 
             || tokens[1] === undefined
             || tokens[2] === undefined
