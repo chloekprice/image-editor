@@ -15,7 +15,7 @@
             "outFiles": [
                 "${workspaceFolder}/**/*.js"
             ],
-            "args": ["source_images/feep.ppm", "output_images/feep.ppm", "grayscale"]
+            "args": ["source_images/feep.ppm", "output_images/feep-grayscale.ppm", "grayscale"]
         },
     ]
 }
