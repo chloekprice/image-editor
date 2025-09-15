@@ -87,7 +87,6 @@ class ImageEditor {
                     throw new Error('cannot parse motion blur length');
                 }
                 let length = parseInt(this.commandLineArgs[3], 10);
-                console.log(length);
                 this._motionblur(image, length);
             }
             else {

@@ -1,12 +1,13 @@
 const fs = require('fs');
 
-
+// custom type
 type Color = {
     red: number,
     green: number,
     blue: number
 }
 
+// checks if variable if of type color
 function isColor(value: any): value is Color {
     return (
         value &&
@@ -16,7 +17,7 @@ function isColor(value: any): value is Color {
     );
 }
 
-
+// holds image data
 class Image {
     private _pixels: Color[][];
 
@@ -35,23 +36,16 @@ class Image {
     public set height(newHeight: number) { this._height = newHeight; }
 
     public setColor(width: number, height: number, newColor: Color) {
-        if ((height >= this._height) || (width >= this._width) || (height < 0) || (width < 0)) {
-            throw new Error
-        }
+        if ((height >= this._height) || (width >= this._width) || (height < 0) || (width < 0)) { throw new Error("Out of bounds image pixel access") }
 
         this._pixels[height]![width] = newColor;
     }
 
     public getColor(width: number, height: number): Color {
-        if ((height >= this._height) || (width >= this._width) || (height < 0) || (width < 0)) {
-            throw new Error
-        }
+        if ((height >= this._height) || (width >= this._width) || (height < 0) || (width < 0)) { throw new Error("Out of bounds image pixel access") }
 
-        if (isColor(this._pixels[height]![width])) {
-            return this._pixels[height]![width] as Color;
-        } else {
-            return {red: 0, green: 0, blue: 0};
-        }
+        if (isColor(this._pixels[height]![width])) { return this._pixels[height]![width] as Color; } 
+        else { return {red: 0, green: 0, blue: 0}; }
     }
 
 }
@@ -59,9 +53,7 @@ class Image {
 class ImageEditor {
     private commandLineArgs: string[]
 
-    public constructor() { 
-        this.commandLineArgs = process.argv.slice(2)
-    }
+    public constructor() { this.commandLineArgs = process.argv.slice(2) }
 
     run() {
         try {
@@ -82,18 +74,21 @@ class ImageEditor {
                     return;
                 }
                 this._grayscale(image);
+
             } else if (FILTER === "invert") {
                 if (this.commandLineArgs.length != 3) {
                     this._usage();
                     return;
                 }
                 this._invert(image);
+
             }else if (FILTER === "emboss") {
                 if (this.commandLineArgs.length != 3) {
                     this._usage();
                     return;
                 }
                 this._emboss(image);
+
             } else if (FILTER === "motionblur") {
                 if (this.commandLineArgs.length < 4) {
                     this._usage();
@@ -104,20 +99,20 @@ class ImageEditor {
                 let length = parseInt(this.commandLineArgs[3] as string, 10);
 
                 this._motionblur(image, length);
+
             } else {
                 this._usage()
             }
 
             this._writeOutImage(image, OUTPUT_FILE as string)
         } catch (error) {
-            if (error instanceof Error) {
-                console.log(error.stack)
-            } else {
-                console.log(error)
-            }
+            if (error instanceof Error) { console.log(error.stack) } 
+            else { console.log(error) }
         }
     }
 
+
+    // HELPER FUNCTIONS
 
     private _emboss(image: Image) {
 		for (let w = image.width - 1; w >= 0; --w) {
@@ -219,12 +214,12 @@ class ImageEditor {
             || tokens[1] === undefined
             || tokens[2] === undefined
             || tokens[3] === undefined
-        ) { throw new Error('Unsupported PPM format. Only configure for P3'); }
+        ) { throw new Error('Unsupported PPM format. Only P3 is supported.'); }
 
         // Get image width and height
         const width = parseInt(tokens[1], 10);
         const height = parseInt(tokens[2], 10);
-        const _ = parseInt(tokens[3], 10);
+        const _ = parseInt(tokens[3], 10); // skip max value
 
         // Get and set image data
         image = new Image(width, height);
@@ -265,8 +260,8 @@ class ImageEditor {
 
         fs.writeFileSync(filePath, ppmContent);
     }
-
 }
 
+// RUN
 const editor = new ImageEditor();
 editor.run();
