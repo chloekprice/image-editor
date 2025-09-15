@@ -116,7 +116,7 @@ class ImageEditor {
                 this._usage()
             }
 
-            this._writeOutImage(image, OUTPUT_FILE)
+            this._writeOutImage(image, OUTPUT_FILE as string)
         } catch (error) {
             if (error instanceof Error) {
                 console.log(error.stack)
@@ -289,9 +289,21 @@ class ImageEditor {
 		console.log("USAGE: java ImageEditor <in-file> <out-file> <grayscale|invert|emboss|motionblur> {motion-blur-length}");
 	}
 
-    private _writeOutImage(image: Image, filePath: string | undefined) {
-        // TODO: print out final image to file
-        console.log(`Pretending to write image to ${filePath}`);
+    private _writeOutImage(image: Image, filePath: string) {
+        let ppmContent = `P3\n`;
+        ppmContent += `${image.width} ${image.height}\n`;
+        ppmContent += `255\n`;
+
+        for (let y = 0; y < image.height; y++) {
+            let rowPixels: string[] = [];
+            for (let x = 0; x < image.width; x++) {
+                const pixel = image.getColor(y, x);
+                rowPixels.push(`${pixel.red} ${pixel.green} ${pixel.blue}`);
+            }
+            ppmContent += rowPixels.join(' ') + '\n';
+        }
+
+        fs.writeFileSync(filePath, ppmContent);
     }
 
 }

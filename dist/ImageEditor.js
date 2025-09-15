@@ -241,8 +241,18 @@ class ImageEditor {
         console.log("USAGE: java ImageEditor <in-file> <out-file> <grayscale|invert|emboss|motionblur> {motion-blur-length}");
     }
     _writeOutImage(image, filePath) {
-        // TODO: print out final image to file
-        console.log(`Pretending to write image to ${filePath}`);
+        let ppmContent = `P3\n`;
+        ppmContent += `${image.width} ${image.height}\n`;
+        ppmContent += `255\n`;
+        for (let y = 0; y < image.height; y++) {
+            let rowPixels = [];
+            for (let x = 0; x < image.width; x++) {
+                const pixel = image.getColor(y, x);
+                rowPixels.push(`${pixel.red} ${pixel.green} ${pixel.blue}`);
+            }
+            ppmContent += rowPixels.join(' ') + '\n';
+        }
+        fs.writeFileSync(filePath, ppmContent);
     }
 }
 const editor = new ImageEditor();
