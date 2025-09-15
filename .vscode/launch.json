@@ -15,7 +15,7 @@
             "outFiles": [
                 "${workspaceFolder}/**/*.js"
             ],
-            "args": [ "source_images/one-does-not-simply.ppm", "key_images/one-does-not-simply.ppm", "emboss" ]
+            "args": ["input.ppm", "output.ppm", "grayscale"]
         },
     ]
 }

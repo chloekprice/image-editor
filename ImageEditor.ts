@@ -1,4 +1,4 @@
-import * as fs from 'fs';
+const fs = require('fs');
 
 
 type Color = {
@@ -6,6 +6,16 @@ type Color = {
     green: number,
     blue: number
 }
+
+function isColor(value: any): value is Color {
+    return (
+        value &&
+        typeof value.red === 'number' &&
+        typeof value.green === 'number' &&
+        typeof value.blue === 'number'
+    );
+}
+
 
 class Image {
     private _pixels: Color[][];
@@ -37,7 +47,11 @@ class Image {
             throw new Error
         }
 
-        return this._pixels[x]![y];
+        if (isColor(this._pixels[x]![y])) {
+            return this._pixels[x]![y] as Color;
+        } else {
+            return {red: 0, green: 0, blue: 0};
+        }
     }
 
 }
@@ -50,6 +64,7 @@ class ImageEditor {
     }
 
     run() {
+        console.log("starting...")
         try {
             if (this.commandLineArgs.length < 3) {
                 this._usage();
@@ -60,7 +75,11 @@ class ImageEditor {
             const OUTPUT_FILE = this.commandLineArgs[1];
             const FILTER = this.commandLineArgs[2];
 
-            let image: Image = this._readImage(INPUT_FILE);
+            console.log(INPUT_FILE);
+            console.log(OUTPUT_FILE);
+            console.log(FILTER);
+
+            let image: Image = this._readImage(INPUT_FILE as string);
 
             if (FILTER === "grayscale" || FILTER === "greyscale") {
                 if (this.commandLineArgs.length != 3) {
@@ -87,11 +106,10 @@ class ImageEditor {
                 }
                 
                 let length: number = -1;
-                try {
-                    // TODO parse integer from arg 3
-                } catch {
-                    // ignore error
-                }
+
+                if (typeof this.commandLineArgs === "string") {
+                    length = parseInt(this.commandLineArgs[3])
+                }   
 
                 this._motionblur(image, length);
             } else {
@@ -190,10 +208,79 @@ class ImageEditor {
 		}
 	}
 
-    private _readImage(filePath: string | undefined): Image {
-        let image: Image | undefined = null
+    private _readImage(filePath: string): Image {
+        let image: Image;
 
-        // TODO: read in image from file
+            let fileContent = fs.readFileSync(filePath);
+            let offset = 0;
+
+            let magicNumber = "";
+            while (fileContent[offset] !== 0x0A && fileContent[offset] !== 0x20) {
+                magicNumber += String.fromCharCode(fileContent[offset] as number);
+                offset++;
+            }
+
+            offset++;
+
+            if (magicNumber !== "P3") {
+                console.error("Unsupported PPM format. Only P3 is supported.")
+            }
+
+            while (fileContent[offset] === 0x23) { // '#'
+                while (fileContent[offset] !== 0x0A) { // Newline
+                    offset++;
+                }
+                offset++; // Skip newline
+            }
+
+            // Read width
+            let widthStr = '';
+            while (fileContent[offset] !== 0x0A && fileContent[offset] !== 0x20) {
+                widthStr += String.fromCharCode(fileContent[offset] as number);
+                offset++;
+            }
+            offset++;
+            const width = parseInt(widthStr, 10);
+
+            console.log(width);
+
+            // Read height
+            let heightStr = '';
+            while (fileContent[offset] !== 0x0A && fileContent[offset] !== 0x20) {
+                heightStr += String.fromCharCode(fileContent[offset] as number);
+                offset++;
+            }
+            offset++;
+            const height = parseInt(heightStr, 10);
+
+            console.log(height);
+
+            image = new Image(width, height);
+
+            // Read max color value
+            let maxColorValueStr = '';
+            while (fileContent[offset] !== 0x0A && fileContent[offset] !== 0x20) {
+                maxColorValueStr += String.fromCharCode(fileContent[offset] as number);
+                offset++;
+            }
+            offset++;
+            const maxColorValue = parseInt(maxColorValueStr, 10);
+
+            for (let y = 0; y < height; ++y) {
+                for (let x = 0; x < width; ++x) {
+                    let redString: string = String.fromCharCode(fileContent[offset] as number);
+                    let red: number = parseInt(redString);
+                    offset++;
+                    let greenString: string = String.fromCharCode(fileContent[offset] as number);
+                    let green: number = parseInt(greenString);
+                    offset++;
+                    let blueString: string = String.fromCharCode(fileContent[offset] as number);
+                    let blue: number = parseInt(blueString);
+                    offset++;
+
+                    image.setColor(y, x, {red: red, blue: blue, green: green});
+                }
+            }
 
         return image;
     }
@@ -204,6 +291,10 @@ class ImageEditor {
 
     private _writeOutImage(image: Image, filePath: string | undefined) {
         // TODO: print out final image to file
+        console.log(`Pretending to write image to ${filePath}`);
     }
 
 }
+
+const editor = new ImageEditor();
+editor.run();
